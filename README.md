@@ -13,6 +13,9 @@ A lightweight, zero-dependency Python command-line utility to fetch post/status 
   - Length is capped at 10 words.
   - Unsafe characters are sanitized and replaced with a single underscore.
 - **Pipelining-Friendly**: Logs and status indicators are directed to `stderr`, leaving `stdout` perfectly clean for piping or redirection to files.
+- **Flask Web API**: Includes an optional `api.py` wrapper to run the downloader as a REST service.
+- **Docker Ready**: Shipped with a `Dockerfile` and automated GitHub Actions publishing workflow.
+- **Built-in Profiling**: Included profiler for tracking download speeds and extraction times.
 
 ---
 
@@ -140,4 +143,55 @@ Run the test suite to verify the URL parsing, filename sanitization, high-qualit
 
 ```bash
 python -m unittest test_x_downloader.py
+python -m unittest test_api.py
 ```
+
+---
+
+## Web API & Docker
+
+You can run `x_downloader` as a REST API that streams media back to the client.
+
+### Local Setup
+Install the API dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+Run the API:
+```bash
+# Development (Werkzeug)
+python api.py --dev
+
+# Production (Waitress)
+python api.py
+```
+
+### Docker
+A `Dockerfile` is included to easily containerize the API.
+
+```bash
+docker build -t xwitter-api .
+docker run -p 5000:5000 xwitter-api
+```
+*(A GitHub Actions workflow is also included to automatically publish the Docker image.)*
+
+### API Usage
+**POST `/download`**
+Accepts a JSON body containing the target X/Twitter URL and returns the video file as an `application/octet-stream`.
+
+**Request:**
+```json
+{
+  "url": "https://x.com/username/status/12345"
+}
+```
+
+**cURL Example:**
+```bash
+curl -X POST http://localhost:5000/download \
+     -H "Content-Type: application/json" \
+     -d '{"url": "https://x.com/Twitter/status/1577730467436138524"}' \
+     --output downloaded_video.mp4
+```
+

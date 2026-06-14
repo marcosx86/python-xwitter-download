@@ -96,19 +96,19 @@ def process_batch(file_path: str, output_dir: str) -> bool:
             failures.append(url)
             logging.error("[%d/%d] EXCEPTION: Error processing URL: %s", idx, total_urls, exc)
 
-    # Output a summary report to stderr/stdout
-    print("\n" + "=" * 60, file=sys.stderr)
-    print("BATCH DOWNLOAD SUMMARY", file=sys.stderr)
-    print("=" * 60, file=sys.stderr)
-    print(f"Total URLs processed: {total_urls}", file=sys.stderr)
-    print(f"Successful downloads: {success_count}", file=sys.stderr)
-    print(f"Failed downloads:     {len(failures)}", file=sys.stderr)
+    # Output a summary report to logging
+    logging.info("=" * 60)
+    logging.info("BATCH DOWNLOAD SUMMARY")
+    logging.info("=" * 60)
+    logging.info(f"Total URLs processed: {total_urls}")
+    logging.info(f"Successful downloads: {success_count}")
+    logging.info(f"Failed downloads:     {len(failures)}")
 
     if failures:
-        print("\nFailed URLs:", file=sys.stderr)
+        logging.error("Failed URLs:")
         for fail_url in failures:
-            print(f"  - {fail_url}", file=sys.stderr)
-    print("=" * 60, file=sys.stderr)
+            logging.error(f"  - {fail_url}")
+    logging.info("=" * 60)
 
     return len(failures) == 0
 

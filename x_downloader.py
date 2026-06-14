@@ -9,11 +9,13 @@ This script runs out-of-the-box using the Python Standard Library.
 """
 
 import argparse
+import contextlib
 import json
 import logging
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -41,7 +43,7 @@ def setup_logging(verbose: bool) -> None:
     level = logging.DEBUG if verbose else logging.INFO
     handler = logging.StreamHandler(sys.stderr)
     formatter = logging.Formatter(
-        "[%(asctime)s] %(levelname)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
     handler.setFormatter(formatter)
 
@@ -50,6 +52,23 @@ def setup_logging(verbose: bool) -> None:
     # Clear any existing handlers to prevent duplicate logging
     root_logger.handlers = []
     root_logger.addHandler(handler)
+
+
+class Profiler:
+    def __init__(self):
+        self.points = []
+
+    @contextlib.contextmanager
+    def step(self, name):
+        start = time.perf_counter()
+        try:
+            yield
+        finally:
+            end = time.perf_counter()
+            self.points.append({
+                "label": name,
+                "duration_ms": round((end - start) * 1000, 2)
+            })
 
 
 def extract_tweet_info(url: str) -> tuple[str, str]:
@@ -363,9 +382,11 @@ def process_tweet(
     Returns:
         The fetched tweet data dictionary (standardized), or None if an error occurred.
     """
+    profiler = Profiler()
     try:
         username, status_id = extract_tweet_info(url)
-        tweet_data = fetch_tweet_data(username, status_id)
+        with profiler.step("fetch_tweet_data"):
+            tweet_data = fetch_tweet_data(username, status_id)
     except ValueError as val_err:
         logging.error("Invalid input: %s", val_err)
         return None
@@ -452,7 +473,8 @@ def process_tweet(
         dest_path = os.path.join(output_dir, dest_filename)
 
         try:
-            download_file(download_url, dest_path)
+            with profiler.step(f"download_media_{idx+1}"):
+                download_file(download_url, dest_path)
             logging.info("Successfully downloaded: %s", dest_filename)
         except Exception as dl_err:
             logging.error(
@@ -462,6 +484,7 @@ def process_tweet(
                 dl_err,
             )
 
+    tweet_data["flame_graph"] = profiler.points
     return tweet_data
 
 
