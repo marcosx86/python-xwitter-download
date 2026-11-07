@@ -9,6 +9,7 @@ Exposes endpoints:
     - GET /tweet: Accepts a 'url' query parameter and returns tweet details as JSON.
 """
 
+import json
 import logging
 import sys
 import tempfile
@@ -42,6 +43,21 @@ def handle_exception(e):
     logger.error(f"Unhandled Exception: {e}", exc_info=True)
     return jsonify({"error_message": "An unexpected Internal Server Error occurred."}), 500
 
+def build_tweet_payload(tweet_data, username, status_id):
+    """Builds the textual tweet payload shared by GET /tweet and the ZIP metadata file."""
+    return {
+        "username": tweet_data.get("username", username),
+        "status_id": status_id,
+        "content": tweet_data.get("text", ""),
+        "text": tweet_data.get("text", ""),
+        "date": tweet_data.get("date", "Unknown"),
+        "likes": tweet_data.get("likes", 0),
+        "retweets": tweet_data.get("retweets", 0),
+        "replies": tweet_data.get("replies", 0),
+        "media": tweet_data.get("media", [])
+    }
+
+
 @app.route("/tweet", methods=["GET"])
 def get_tweet():
     """
@@ -69,19 +85,7 @@ def get_tweet():
     if not tweet_data:
         return jsonify({"error_message": "Failed to fetch tweet metadata (empty response)"}), 500
 
-    response_payload = {
-        "username": tweet_data.get("username", username),
-        "status_id": status_id,
-        "content": tweet_data.get("text", ""),
-        "text": tweet_data.get("text", ""),
-        "date": tweet_data.get("date", "Unknown"),
-        "likes": tweet_data.get("likes", 0),
-        "retweets": tweet_data.get("retweets", 0),
-        "replies": tweet_data.get("replies", 0),
-        "media": tweet_data.get("media", [])
-    }
-
-    return jsonify(response_payload), 200
+    return jsonify(build_tweet_payload(tweet_data, username, status_id)), 200
 
 
 @app.route("/download", methods=["POST"])
@@ -176,6 +180,10 @@ def download_media():
     zip_buffer = tempfile.SpooledTemporaryFile(max_size=16 * 1024 * 1024)
     try:
         with zipfile.ZipFile(zip_buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr(
+                f"{filename_base}.json",
+                json.dumps(build_tweet_payload(tweet_data, username, status_id), indent=2, ensure_ascii=False)
+            )
             for idx, media_item in enumerate(media_list, start=1):
                 download_url, ext = resolve_media_info(media_item)
                 item_filename = f"{filename_base}_{idx}.{ext}"

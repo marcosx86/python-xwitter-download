@@ -177,6 +177,12 @@ class TestAPI(unittest.TestCase):
         self.assertIn("user_Photo_and_video_2.mp4", file_names)
         self.assertEqual(zf.read("user_Photo_and_video_1.jpg"), b"photo_bytes")
         self.assertEqual(zf.read("user_Photo_and_video_2.mp4"), b"video_bytes")
+        self.assertIn("user_Photo_and_video.json", file_names)
+        meta = json.loads(zf.read("user_Photo_and_video.json").decode("utf-8"))
+        self.assertEqual(meta["username"], "user")
+        self.assertEqual(meta["status_id"], "12345")
+        self.assertEqual(meta["content"], "Photo and video")
+        self.assertEqual(len(meta["media"]), 2)
 
     @patch("api.extract_tweet_info")
     @patch("api.fetch_tweet_data")

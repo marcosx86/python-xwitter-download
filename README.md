@@ -215,7 +215,7 @@ Accepts a JSON body containing the target X/Twitter URL and streams the attached
 
 **Multiple Media Handling (Approach 3)**:
 - **Single item**: Streamed directly as a file (`application/octet-stream`).
-- **Multiple items**: Bundled into a **`.zip` archive** (`application/zip`) containing all media items.
+- **Multiple items**: Bundled into a **`.zip` archive** (`application/zip`) containing all media items plus a `<name>.json` file with the same metadata as `GET /tweet`.
 - **Specific item**: Provide an optional 1-based `"index"` in the request body to download a single item even if multiple exist.
 - **High Quality**: Images are automatically requested in full original resolution (`name=orig`).
 
