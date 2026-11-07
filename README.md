@@ -167,31 +167,85 @@ python api.py --dev
 python api.py
 ```
 
-### Docker
-A `Dockerfile` is included to easily containerize the API.
+### Docker & Docker Compose
+A `Dockerfile` and `docker-compose.yml` are included to containerize and run the API easily.
 
+**Using Docker:**
 ```bash
 docker build -t xwitter-api .
 docker run -p 5000:5000 xwitter-api
 ```
+
+**Using Docker Compose:**
+```bash
+docker compose up --build
+```
 *(A GitHub Actions workflow is also included to automatically publish the Docker image.)*
 
 ### API Usage
-**POST `/download`**
-Accepts a JSON body containing the target X/Twitter URL and returns the video file as an `application/octet-stream`.
 
-**Request:**
+#### **GET `/tweet`**
+Fetches post details including author screen name, tweet textual content, timestamp, engagement metrics, and media links.
+
+**Query Parameters:**
+- `url` (required): Full URL to the X/Twitter post.
+
+**Example Request:**
+```bash
+curl -X GET "http://localhost:5000/tweet?url=https://x.com/Twitter/status/1577730467436138524"
+```
+
+**Example Response:**
+```json
+{
+  "username": "Twitter",
+  "status_id": "1577730467436138524",
+  "content": "hello literally everyone",
+  "text": "hello literally everyone",
+  "date": "Tue Oct 04 18:31:00 +0000 2022",
+  "likes": 50000,
+  "retweets": 12000,
+  "replies": 8000,
+  "media": []
+}
+```
+
+#### **POST `/download`**
+Accepts a JSON body containing the target X/Twitter URL and streams the attached media file(s).
+
+**Multiple Media Handling (Approach 3)**:
+- **Single item**: Streamed directly as a file (`application/octet-stream`).
+- **Multiple items**: Bundled into a **`.zip` archive** (`application/zip`) containing all media items.
+- **Specific item**: Provide an optional 1-based `"index"` in the request body to download a single item even if multiple exist.
+- **High Quality**: Images are automatically requested in full original resolution (`name=orig`).
+
+**Request (Download all / auto-detect):**
 ```json
 {
   "url": "https://x.com/username/status/12345"
 }
 ```
 
-**cURL Example:**
+**Request (Download specific item):**
+```json
+{
+  "url": "https://x.com/username/status/12345",
+  "index": 2
+}
+```
+
+**cURL Examples:**
 ```bash
+# Direct file or ZIP bundle
 curl -X POST http://localhost:5000/download \
      -H "Content-Type: application/json" \
      -d '{"url": "https://x.com/Twitter/status/1577730467436138524"}' \
-     --output downloaded_video.mp4
+     --output downloaded_media
+
+# Download only item 1
+curl -X POST http://localhost:5000/download \
+     -H "Content-Type: application/json" \
+     -d '{"url": "https://x.com/Twitter/status/1577730467436138524", "index": 1}' \
+     --output item_1.jpg
 ```
 
